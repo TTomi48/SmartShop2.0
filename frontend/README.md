@@ -18,6 +18,8 @@ Open the URL displayed by Vite.
 
 The frontend requires the Spring Boot backend running on `http://localhost:8080`. To use another API address, set `VITE_API_BASE_URL` in `.env.local`.
 
+To run the entire application with Docker, see the [root README](../README.md).
+
 ## Testing
 
 Run these commands from the `frontend` directory:
