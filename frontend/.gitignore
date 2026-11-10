@@ -22,3 +22,9 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Local code analysis
+graphify-out/
+
+# Generated test reports
+/tests/evidence/
