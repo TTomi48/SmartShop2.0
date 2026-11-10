@@ -471,6 +471,75 @@ class ShoppingItemServiceTest {
         verifyNoInteractions(shoppingItemRepository);
     }
 
+    @Test
+    void shoppingListResponseIncludesPurchasedItemsAndMarksMissingCategories() {
+        var bakery = category(1L);
+        var milk = item(1L, category(2L));
+        var bread = item(2L, bakery);
+        bread.setPurchased(true);
+        when(storeCategoryService.getStoreCategories(1L))
+                .thenReturn(List.of(placement(bakery, 0)));
+        when(shoppingItemRepository.findAllByOrderByCreatedAtAscIdAsc())
+                .thenReturn(List.of(milk, bread));
+
+        var result = service.getShoppingListResponse(1L, false);
+
+        assertEquals(2, result.size());
+        assertEquals(2L, result.get(0).id());
+        assertTrue(result.get(0).purchased());
+        assertFalse(result.get(0).categoryMissing());
+        assertEquals(1L, result.get(1).id());
+        assertTrue(result.get(1).categoryMissing());
+    }
+
+    @Test
+    void remainingShoppingListResponseFiltersPurchasedItemsAndPreservesOrder() {
+        var bakery = category(1L);
+        var dairy = category(2L);
+        var milk = item(1L, dairy);
+        var bread = item(2L, bakery);
+        var purchased = item(3L, bakery);
+        var missing = item(4L, category(3L));
+        purchased.setPurchased(true);
+        when(storeCategoryService.getStoreCategories(1L))
+                .thenReturn(List.of(placement(bakery, 0), placement(dairy, 1)));
+        when(shoppingItemRepository.findAllByOrderByCreatedAtAscIdAsc())
+                .thenReturn(List.of(milk, bread, purchased, missing));
+
+        var result = service.getShoppingListResponse(1L, true);
+
+        assertEquals(List.of(2L, 1L, 4L), result.stream().map(row -> row.id()).toList());
+        assertTrue(result.stream().noneMatch(row -> row.purchased()));
+        assertTrue(result.get(2).categoryMissing());
+        assertTrue(purchased.isPurchased());
+    }
+
+    @Test
+    void shoppingListResponseClearsMissingFlagAfterCategoryIsPlaced() {
+        var category = category(1L);
+        when(shoppingItemRepository.findAllByOrderByCreatedAtAscIdAsc())
+                .thenReturn(List.of(item(1L, category)));
+        when(storeCategoryService.getStoreCategories(1L)).thenReturn(List.of());
+
+        assertTrue(service.getShoppingListResponse(1L, false).getFirst().categoryMissing());
+
+        when(storeCategoryService.getStoreCategories(1L))
+                .thenReturn(List.of(placement(category, 0)));
+
+        assertFalse(service.getShoppingListResponse(1L, false).getFirst().categoryMissing());
+    }
+
+    @Test
+    void remainingShoppingListResponseIsEmptyWhenEverythingIsPurchased() {
+        var category = category(1L);
+        var item = item(1L, category);
+        item.setPurchased(true);
+        when(storeCategoryService.getStoreCategories(1L)).thenReturn(List.of());
+        when(shoppingItemRepository.findAllByOrderByCreatedAtAscIdAsc()).thenReturn(List.of(item));
+
+        assertTrue(service.getShoppingListResponse(1L, true).isEmpty());
+    }
+
     private static ShoppingItemRequest request() {
         return new ShoppingItemRequest("Milk", 1L, null, null, null);
     }
