@@ -1,122 +1,74 @@
-import { useState } from 'react'
-import heroImg from './assets/hero.png'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
+import {useState} from 'react'
+import {api, loadInitialData} from './api/shop.ts'
+import {ErrorNotice, Loading} from './components/Feedback.tsx'
+import {useMutation} from './hooks/useMutation.ts'
+import {useResource} from './hooks/useResource.ts'
+import {ShoppingPage} from './pages/ShoppingPage.tsx'
+import {StoresPage} from './pages/StoresPage.tsx'
+import {CategoriesPage} from './pages/CategoriesPage.tsx'
+import type {NamedResource} from './types/index.ts'
 import './App.css'
 
-function App() {
-  const [count, setCount] = useState(0)
+type Page = 'shopping' | 'stores' | 'categories'
 
-  return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.tsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+function Shop({initial}: Readonly<{ initial: { stores: NamedResource[]; selectedStoreId: number | null } }>) {
+    const [page, setPage] = useState<Page>('shopping')
+    const [stores, setStores] = useState(initial.stores)
+    const [storeId, setStoreId] = useState(initial.selectedStoreId)
+    const [remainingOnly, setRemainingOnly] = useState(false)
+    const selection = useMutation()
+    const selectedStore = stores.find(store => store.id === storeId)
+    const canShowList = stores.length > 0 && storeId !== null
+    const storeMessage = stores.length === 0
+        ? 'No stores yet. Create one on the Stores page.'
+        : 'Select a store to view your shopping list.'
 
-      <div className="ticks"></div>
+    async function selectStore(id: number) {
+        if (await selection.run(() => api.selectStore(id))) setStoreId(id)
+    }
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <div className="ticks"></div>
-      <section id="spacer"></section>
+    return <>
+        <header className="site-header">
+            <a className="brand" href="#shopping" onClick={() => setPage('shopping')}>SmartShop</a>
+            <nav aria-label="Main navigation">
+                {([['shopping', 'Shopping list'], ['stores', 'Stores'], ['categories', 'Categories']] as const).map(([id, label]) =>
+                    <button key={id} type="button" aria-current={page === id ? 'page' : undefined}
+                            onClick={() => setPage(id)}>{label}</button>,
+                )}
+            </nav>
+        </header>
+        <main>
+            <section className="card store-selector">
+                <label htmlFor="selected-store">Selected store</label>
+                <select id="selected-store" value={storeId ?? ''} disabled={selection.pending || stores.length === 0}
+                        onChange={event => void selectStore(Number(event.target.value))}>
+                    <option value="" disabled>Select a store</option>
+                    {stores.map(store => <option key={store.id} value={store.id}>{store.name}</option>)}
+                </select>
+                {selection.pending && <output>Switching store…</output>}
+                <ErrorNotice message={selection.error}/>
+            </section>
+            {page === 'shopping' && <>
+                <div className="page-heading">
+                    <div><h1>Shopping list</h1>
+                        <p>{selectedStore?.name ?? 'Your shared shopping list, ordered by store.'}</p></div>
+                </div>
+                {canShowList ? <ShoppingPage key={storeId} storeId={storeId} remainingOnly={remainingOnly}
+                                             onViewChange={setRemainingOnly}/> :
+                    <p className="card notice">{storeMessage}</p>}
+            </>}
+            {page === 'stores' && <StoresPage stores={stores} selectedStoreId={storeId} selecting={selection.pending}
+                                              onSelect={selectStore}
+                                              onCreated={store => setStores(current => [...current, store])}/>}
+            {page === 'categories' && <CategoriesPage/>}
+        </main>
     </>
-  )
 }
 
-export default App
+export default function App() {
+    const initial = useResource(loadInitialData)
+    if (initial.loading) return <main><h1>SmartShop</h1><Loading/></main>
+    if (initial.error) return <main><h1>SmartShop</h1><ErrorNotice message={initial.error} onRetry={initial.reload}/>
+    </main>
+    return initial.data && <Shop initial={initial.data}/>
+}
