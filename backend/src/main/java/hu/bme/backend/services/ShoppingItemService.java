@@ -1,6 +1,7 @@
 package hu.bme.backend.services;
 
 import hu.bme.backend.entities.ShoppingItem;
+import hu.bme.backend.dto.ShoppingListItemResponse;
 import hu.bme.backend.exceptions.ResourceNotFoundException;
 import hu.bme.backend.repositories.CategoryRepository;
 import hu.bme.backend.repositories.ShoppingItemRepository;
@@ -11,10 +12,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Example;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -128,6 +126,32 @@ public class ShoppingItemService {
         shoppingItemRepository.deleteByPurchasedTrue();
     }
 
+
+    @Transactional
+    public List<ShoppingListItemResponse> getShoppingListResponse(Long storeId, boolean remainingOnly) {
+        var items = getShoppingList(storeId);
+        var storeCategories = storeCategoryService.getStoreCategories(storeId);
+
+        Set<Long> placedCategoryIds = new HashSet<>();
+
+        for (var storeCategory : storeCategories) {
+            placedCategoryIds.add(storeCategory.getCategory().getId());
+        }
+
+        List<ShoppingListItemResponse> result = new ArrayList<>();
+
+        for (var item : items) {
+            if (remainingOnly && item.isPurchased()) {
+                continue;
+            }
+
+            boolean categoryMissing = !placedCategoryIds.contains(item.getCategory().getId());
+
+            result.add(ShoppingListItemResponse.from(item, categoryMissing));
+        }
+
+        return result;
+    }
 
     public List<ShoppingItem> getShoppingList(Long storeId) {
         if (storeId == null) {
