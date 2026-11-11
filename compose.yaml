@@ -1,0 +1,49 @@
+name: smartshop
+
+services:
+  database:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: smartshop
+      POSTGRES_USER: ${SMARTSHOP_DB_USER:-smartshop}
+      POSTGRES_PASSWORD: ${SMARTSHOP_DB_PASSWORD:?Set SMARTSHOP_DB_PASSWORD in .env before starting.}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build: ./backend
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://database:5432/smartshop
+      SPRING_DATASOURCE_USERNAME: ${SMARTSHOP_DB_USER:-smartshop}
+      SPRING_DATASOURCE_PASSWORD: ${SMARTSHOP_DB_PASSWORD:?Set SMARTSHOP_DB_PASSWORD in .env before starting.}
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+    depends_on:
+      database:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "--silent", "--output", "/dev/null", "http://localhost:8080/"]
+      interval: 5s
+      timeout: 5s
+      start_period: 30s
+      retries: 20
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "127.0.0.1:${SMARTSHOP_PORT:-8080}:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1/"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  postgres_data:

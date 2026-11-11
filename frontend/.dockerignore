@@ -1,0 +1,10 @@
+node_modules/
+dist/
+tests/
+graphify-out/
+**/graphify-out/
+.env
+.env.*
+.git/
+.idea/
+*.log
