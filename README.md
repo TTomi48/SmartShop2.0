@@ -38,6 +38,26 @@ Database data is stored in the `postgres_data` Docker volume and is preserved be
 
 Keep `.env` out of Git.
 
+## Cloudflare Tunnel (optional)
+
+1. Create a remotely managed tunnel in the Cloudflare dashboard and select the Docker connector.
+2. Copy the connector token (the `eyJ...` value after `--token`) into `.env` as `CLOUDFLARE_TUNNEL_TOKEN`. The tunnel ID and Cloudflare API token cannot be used here. See [Cloudflare's token instructions](https://developers.cloudflare.com/tunnel/reference/tunnel-tokens/).
+3. Add a published application route for your hostname in the tunnel settings, using service type **HTTP** and URL **frontend:80**. This nginx service handles both the application and `/api/` requests.
+4. Start the application with the tunnel from the repository root:
+
+```bash
+docker compose -f compose.yaml -f compose.tunnel.yaml up --build -d --wait --wait-timeout 180
+```
+
+Use the same two `-f` options when managing the tunnel:
+
+```bash
+docker compose -f compose.yaml -f compose.tunnel.yaml logs --tail 100 cloudflared
+docker compose -f compose.yaml -f compose.tunnel.yaml stop cloudflared
+```
+
+The regular `docker compose up` command continues to work without a tunnel token. The tunnel requires no additional published Docker ports. After startup, check that the connector is healthy in Cloudflare and open your HTTPS hostname; verify that the stores and shopping list load through `/api/`. Compose's `--wait` confirms container startup, but does not verify the Cloudflare connection or public route.
+
 ## Development and testing
 
 Backend tests (requires Java 25 and Maven locally):
