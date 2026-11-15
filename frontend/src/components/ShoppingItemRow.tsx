@@ -9,7 +9,7 @@ interface ShoppingItemRowProps {
 }
 
 export function ShoppingItemRow({item, disabled, onToggle, onEdit, onDelete}: Readonly<ShoppingItemRowProps>) {
-    const quantity = [item.quantity?.toLocaleString('en-GB'), item.unit].filter(Boolean).join(' ')
+    const quantity = [item.quantity?.toString().replace('.', ','), item.unit].filter(Boolean).join(' ')
 
     return <div className="item-row">
         <input
@@ -20,7 +20,7 @@ export function ShoppingItemRow({item, disabled, onToggle, onEdit, onDelete}: Re
             onChange={onToggle}
         />
         <div className={item.purchased ? 'item-content purchased' : 'item-content'}>
-            <strong className="item-name">{item.name}</strong>
+            <strong className={item.categoryMissing ? 'item-name missing' : 'item-name'}>{item.name}</strong>
             {quantity && <p>{quantity}</p>}
             {item.note && <p>{item.note}</p>}
             {item.categoryMissing && <p className="warning">This category is not assigned to this store</p>}

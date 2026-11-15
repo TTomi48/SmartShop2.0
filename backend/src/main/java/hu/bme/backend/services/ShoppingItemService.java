@@ -13,6 +13,8 @@ import org.springframework.data.domain.Example;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.stream.Collectors;
 
 @Service
@@ -72,9 +74,7 @@ public class ShoppingItemService {
             throw new IllegalArgumentException("createShoppingItemRequest is null");
         }
 
-        if (dto.quantity() != null && dto.quantity().signum() <= 0) {
-            throw new IllegalArgumentException("Quantity must be positive");
-        }
+        normalizeQuantity(dto.quantity());
 
         if (dto.note() != null && dto.note().length() > 250) {
             throw new IllegalArgumentException("createShoppingItemRequest is too long");
@@ -82,15 +82,28 @@ public class ShoppingItemService {
     }
 
     public void saveItem(ShoppingItemRequest dto, ShoppingItem item) {
+        var quantity = normalizeQuantity(dto.quantity());
         var category = categoryRepository.findById(dto.categoryId())
                 .orElseThrow(() -> new ResourceNotFoundException("Category with id " + dto.categoryId() + " not found"));
 
         item.setProductName(dto.name());
         item.setCategory(category);
-        item.setQty(dto.quantity());
+        item.setQty(quantity);
         item.setUnit(dto.unit());
         item.setComment(dto.note());
         shoppingItemRepository.save(item);
+    }
+
+    private BigDecimal normalizeQuantity(BigDecimal quantity) {
+        if (quantity == null) return null;
+        if (quantity.signum() <= 0) {
+            throw new IllegalArgumentException("Quantity must be positive");
+        }
+        var rounded = quantity.setScale(3, RoundingMode.HALF_UP);
+        if (rounded.signum() <= 0) {
+            throw new IllegalArgumentException("Quantity must be at least 0.001 after rounding to three decimal places");
+        }
+        return rounded.stripTrailingZeros();
     }
 
     @Transactional

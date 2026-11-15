@@ -5,7 +5,7 @@ import {useResource} from '../hooks/useResource.ts'
 import {useMutation} from '../hooks/useMutation.ts'
 import type {ShoppingItem} from '../types/index.ts'
 import {ErrorNotice, Loading} from './Feedback.tsx'
-import {toItemRequest} from './itemFormValues.ts'
+import {toItemFormValues, toItemRequest} from './itemFormValues.ts'
 import type {ItemFormValues} from './itemFormValues.ts'
 
 interface EditorProps {
@@ -34,10 +34,7 @@ function ItemForm({initial, onSaved, onCancel}: Readonly<{
 }>) {
     const categories = useResource(api.categories)
     const mutation = useMutation()
-    const [values, setValues] = useState<ItemFormValues>({
-        name: initial?.name ?? '', categoryId: initial ? String(initial.categoryId) : '',
-        quantity: initial?.quantity?.toString() ?? '', unit: initial?.unit ?? '', note: initial?.note ?? '',
-    })
+    const [values, setValues] = useState<ItemFormValues>(() => toItemFormValues(initial))
 
     function change(field: keyof ItemFormValues, value: string) {
         setValues(current => ({...current, [field]: value}))
@@ -72,7 +69,7 @@ function ItemForm({initial, onSaved, onCancel}: Readonly<{
                     </select>
                 </label>
                 <label className="field">Quantity{' '}
-                    <input inputMode="decimal" placeholder="e.g. 1.5" value={values.quantity}
+                    <input type="text" inputMode="decimal" placeholder="pl. 1,5" value={values.quantity}
                            onChange={e => change('quantity', e.target.value)}/>
                 </label>
                 <label className="field">Unit{' '}

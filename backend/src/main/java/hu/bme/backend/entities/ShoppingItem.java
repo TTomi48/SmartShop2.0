@@ -30,7 +30,7 @@ public class ShoppingItem extends Base {
     @JoinColumn(name = "category", nullable = false)
     private Category category;
 
-    @Column(name = "quantity")
+    @Column(name = "quantity", columnDefinition = "numeric")
     @Positive
     private BigDecimal qty;
 

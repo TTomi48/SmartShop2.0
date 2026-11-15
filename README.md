@@ -6,7 +6,7 @@ Built with React, TypeScript, Spring Boot and PostgreSQL.
 
 ## Running the application
 
-**Requirements:** Docker and Docker Compose (Docker Desktop on Windows/macOS).
+**Requirements:** Docker Engine and Docker Compose v2 with `--wait` support (Docker Desktop on Windows/macOS). Verified with Engine 29.1.3 and Compose 2.40.3.
 
 1. Copy `.env.example` to `.env`.
 2. Set `SMARTSHOP_DB_PASSWORD` in `.env`.
@@ -40,21 +40,32 @@ Keep `.env` out of Git.
 
 ## Development and testing
 
-Backend tests (requires Java 25 and Maven locally):
+Backend tests (requires JDK 25; the Maven wrapper downloads Maven 3.10.0):
 
 ```bash
 cd backend
-mvn test
+./mvnw test
 ```
 
-Frontend development and testing instructions: [frontend/README.md](frontend/README.md).
+On Windows PowerShell use `.\mvnw.cmd test` instead. Spring Boot is 4.1.2 (see `backend/pom.xml`).
+
+For local backend development, start PostgreSQL 17 with an empty `smartshop` database and set `SPRING_DATASOURCE_URL` (for example `jdbc:postgresql://localhost:5432/smartshop`), `SPRING_DATASOURCE_USERNAME`, `SPRING_DATASOURCE_PASSWORD` and `SPRING_JPA_HIBERNATE_DDL_AUTO=update` in the backend process environment. Then run `./mvnw spring-boot:run` (`.\mvnw.cmd spring-boot:run` on Windows) from `backend/`. The API listens on port 8080. Compose's database is internal to Docker; local development requires a separately reachable database.
+
+Frontend development and testing instructions (Node.js 24, npm, Vite on port 5173): [frontend/README.md](frontend/README.md). Run `npm ci`, `npm test`, `npm run lint` and `npm run build` there. In PowerShell with restricted script execution, use `npm.cmd`.
 
 The Docker backend image is built with tests skipped. Run the tests separately when validating changes.
 
 ## Documentation
 
 - [Specification](docs/specification.md)
-- [AI decisions](docs/ai-decisions)
+- [AI decisions index](docs/ai-decisions/README.md)
+- [Milestone 2 – First working version](docs/milestone-2.md)
+
+## Try the main flow
+
+On a fresh database, two sample stores and six shared categories are created with opposite layouts. Existing databases are left untouched. Select a store, add Milk and Bread using different categories, then change the layout under **Stores → Layout**. The shopping list follows that store's order. Check an item, switch stores and refresh: the purchase mark and selected store remain saved. **Remaining** hides purchased items; **New shopping trip** resets marks, while **Delete purchased** deletes only checked items. A category created under **Categories** must be assigned to each store explicitly. Items in unassigned categories remain purchasable and show a warning.
+
+Quantity is optional. Both comma and point decimal input are accepted; the frontend normalizes commas before parsing. The backend rounds quantities to at most three decimal places using `HALF_UP` on both create and update. Extra decimal places are accepted, but values that are non-positive or round to zero are rejected. The saved value is displayed with a decimal comma and no unnecessary trailing zeros (for example `1,1255` becomes `1,126`). A custom unit and up to 250 characters of notes are independent optional fields. The PostgreSQL schema is unchanged; existing quantities are normalized when edited and saved, without a bulk data migration.
 
 ## Docker verification
 
