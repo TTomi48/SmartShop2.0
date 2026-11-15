@@ -9,6 +9,9 @@ import hu.bme.backend.repositories.ShoppingItemRepository;
 import hu.bme.backend.services.records.ShoppingItemRequest;
 import jakarta.persistence.EntityNotFoundException;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -97,6 +100,36 @@ class ShoppingItemServiceTest {
         assertNull(result.getComment());
         assertFalse(result.isPurchased());
         verify(shoppingItemRepository).save(result);
+    }
+
+    @ParameterizedTest
+    @CsvSource({"1,1", "1.5,1.5", "1.12,1.12", "1.125,1.125", "1.1255,1.126",
+            "1.1254,1.125", "0.0009,0.001", "0.0005,0.001",
+            "2.9999,3", "1.23456789,1.235", "1.5000,1.5"})
+    void createAndUpdateNormalizeQuantityWithHalfUp(String input, String expected) {
+        when(categoryRepository.findById(1L)).thenReturn(Optional.of(category(1L)));
+        var request = new ShoppingItemRequest("Milk", 1L, new BigDecimal(input), null, null);
+        var created = service.createItem(request);
+        assertEquals(new BigDecimal(expected), created.getQty());
+        verify(shoppingItemRepository).save(created);
+
+        var existing = item(10L, category(1L));
+        existing.setPurchased(true);
+        when(shoppingItemRepository.findById(10L)).thenReturn(Optional.of(existing));
+        var updated = service.updateItem(10L, request);
+        assertEquals(new BigDecimal(expected), updated.getQty());
+        assertTrue(updated.isPurchased());
+        verify(shoppingItemRepository).save(existing);
+        assertEquals(new BigDecimal(expected), service.getItemById(10L).getQty());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"0", "-1", "-0.0001", "0.0001", "0.0004999"})
+    void invalidOrRoundedZeroQuantityIsRejectedBeforeAnyMutation(String quantity) {
+        var request = new ShoppingItemRequest("Changed name", 1L, new BigDecimal(quantity), null, null);
+        assertThrows(IllegalArgumentException.class, () -> service.createItem(request));
+        assertThrows(IllegalArgumentException.class, () -> service.updateItem(1L, request));
+        verifyNoInteractions(categoryRepository, shoppingItemRepository);
     }
 
     @Test

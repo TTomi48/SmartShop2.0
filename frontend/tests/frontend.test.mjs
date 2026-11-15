@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import {afterEach, test} from 'node:test'
 import {ApiError, request} from '../src/api/client.ts'
 import {api, loadInitialData} from '../src/api/shop.ts'
-import {toItemRequest} from '../src/components/itemFormValues.ts'
+import {toItemFormValues, toItemRequest} from '../src/components/itemFormValues.ts'
 
 const originalFetch = globalThis.fetch
 afterEach(() => {
@@ -25,11 +25,43 @@ test('optional fields become null independently; duplicate names remain separate
     assert.ok(calls.every(call => call.options.method === 'POST'))
 })
 
-for (const quantity of ['1', '1.5', '1,5', '.5', ',5', '0.001']) {
+for (const quantity of ['1', '1.5', '1,5', '.5', ',5', '0.001', '1.125', '1.1255', '1,1255', '1.1254', '0.0009', '2.9999', '0.0001']) {
     test(`accept positive quantity ${quantity}`, () => {
         assert.equal(toItemRequest({...values, quantity}).quantity, Number(quantity.replace(',', '.')))
     })
 }
+
+test('comma and point inputs reach the server unchanged; editor uses its saved rounded value', async () => {
+    for (const quantity of ['1,1255', '1.1255']) {
+        const payload = toItemRequest({...values, quantity})
+        globalThis.fetch = async (path, options) => {
+            if (options?.method === 'POST') assert.equal(JSON.parse(options.body).quantity, 1.1255)
+            return Response.json({id: 7, ...payload, quantity: 1.126})
+        }
+        assert.equal((await api.createItem(payload)).quantity, 1.126)
+        const editor = toItemFormValues(await api.item(7))
+        assert.equal(editor.quantity, '1,126')
+        assert.equal(toItemRequest(editor).quantity, 1.126)
+    }
+})
+
+test('editing accepts comma and point decimals without client rounding', async () => {
+    for (const quantity of ['1,5', '1.5', '1,1255', '1.1255']) {
+        const payload = toItemRequest({...values, quantity})
+        globalThis.fetch = async (path, options) => {
+            assert.equal(options.method, 'PUT')
+            assert.equal(JSON.parse(options.body).quantity, Number(quantity.replace(',', '.')))
+            return Response.json({id: 7, ...payload, quantity: payload.quantity === 1.5 ? 1.5 : 1.126})
+        }
+        assert.equal(toItemFormValues(await api.updateItem(7, payload)).quantity, payload.quantity === 1.5 ? '1,5' : '1,126')
+    }
+})
+
+test('empty quantity remains optional in both new and reopened forms', () => {
+    assert.equal(toItemFormValues(null).quantity, '')
+    assert.equal(toItemFormValues({name: 'Bread', categoryId: 2, quantity: null}).quantity, '')
+    assert.equal(toItemRequest({...values, quantity: '  '}).quantity, null)
+})
 for (const quantity of ['0', '-1', 'NaN', 'Infinity', 'abc', '1.2.3', '0x10', '1e3']) {
     test(`reject invalid quantity ${quantity}`, () => {
         assert.throws(() => toItemRequest({...values, quantity}), /positive/)
