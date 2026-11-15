@@ -33,11 +33,13 @@ npm run build
 
 The tests cover input validation, API requests, error handling and response ordering.
 
+Quantity accepts both comma and point decimals in a text input with `inputMode="decimal"`. The comma is normalized before numeric parsing; the frontend sends the value without rounding. Spring Boot applies `HALF_UP` rounding to three decimal places and rejects values that become zero. The list and reopened editor use the saved value, displayed with a decimal comma and no unnecessary trailing zeros.
+
 The regression check writes its output to `tests/evidence/`, which is excluded from Git.
 
 ## Manual verification
 
-The five original scenarios below now have live API checks. Browser interaction, refresh and visual checks still need manual execution; exact steps and expected results are in the [testing guide](../docs/testing.md#böngészős-ellenőrzések). Verified results are summarized in the [milestone documentation](../docs/milestone-2.md).
+The user manually completed all five main browser scenarios and reported satisfactory results, with one exception: quantities could display more than three decimal places. The rounding correction has automated checks, and the user subsequently confirmed completion of its manual browser verification. See the [testing guide](../docs/testing.md#böngészős-ellenőrzések) for scenarios and recorded results, and the [milestone documentation](../docs/milestone-2.md) for the summary.
 
 1. Create a store and categories, then assign categories to the store.
 2. Add, edit and check shopping items.

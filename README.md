@@ -65,7 +65,7 @@ The Docker backend image is built with tests skipped. Run the tests separately w
 
 On a fresh database, two sample stores and six shared categories are created with opposite layouts. Existing databases are left untouched. Select a store, add Milk and Bread using different categories, then change the layout under **Stores → Layout**. The shopping list follows that store's order. Check an item, switch stores and refresh: the purchase mark and selected store remain saved. **Remaining** hides purchased items; **New shopping trip** resets marks, while **Delete purchased** deletes only checked items. A category created under **Categories** must be assigned to each store explicitly. Items in unassigned categories remain purchasable and show a warning.
 
-Quantity is optional and positive when provided; a custom unit and up to 250 characters of notes are independent optional fields. PostgreSQL uses an unrestricted `numeric` column to preserve decimal quantities. Values already rounded by older versions cannot be recovered automatically.
+Quantity is optional. Both comma and point decimal input are accepted; the frontend normalizes commas before parsing. The backend rounds quantities to at most three decimal places using `HALF_UP` on both create and update. Extra decimal places are accepted, but values that are non-positive or round to zero are rejected. The saved value is displayed with a decimal comma and no unnecessary trailing zeros (for example `1,1255` becomes `1,126`). A custom unit and up to 250 characters of notes are independent optional fields. The PostgreSQL schema is unchanged; existing quantities are normalized when edited and saved, without a bulk data migration.
 
 ## Docker verification
 

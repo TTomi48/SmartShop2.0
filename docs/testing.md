@@ -28,9 +28,10 @@ A főfolyamat-teszt újbóli adatfelviteléhez új projekt és üres adatbázis 
 
 ## Bizonyítékok
 
-- A backend JUnit-jelentései a `backend/target/surefire-reports/` könyvtárban keletkeznek. A korábbi 104 teszt megoszlása: REST 34, üzletválasztás 8, inicializálás 4, tételek 37, bolti elrendezés 21.
-- A frontend 26 alaptesztjéből 25 a validációt és az API-klienst, egy a React-sor renderelését ellenőrzi. Az eredmény a `npm test` kimenetében látható.
+- A backend JUnit-jelentései a `backend/target/surefire-reports/` könyvtárban keletkeznek. A 120 sikeres teszt megoszlása: REST 34, üzletválasztás 8, inicializálás 4, tételek 53, bolti elrendezés 21. A mennyiségtesztek létrehozáskor és módosításkor is ellenőrzik az egész, 1–3 és több tizedesjegyes értékeket, a `HALF_UP` kerekítést és a nullára kerekedő bemenet elutasítását.
+- A frontend 36 alaptesztjéből 35 a validációt, az API-klienst és a szerkesztő mezőértékeit, egy a React-sor renderelését ellenőrzi. A `1,5`/`1.5` és `1,1255`/`1.1255` azonos numerikus értékként jut a backendhez, kliensoldali kerekítés nélkül; a lista és a visszanyitott űrlap a mentett értéket vesszővel jeleníti meg.
 - Az élő teszt valódi HTTP-kérésekkel ellenőrzi a mintaadatokat, új üzleteket/kategóriákat, független sorrendet, duplikációkat, tételműveleteket, vásárlási állapotot és hibás módosítások elutasítását.
+- A kerekítés javítása utáni élő futás sikeres: egész, 1–3 és több tizedesjegyes mennyiség, `HALF_UP` felfelé/lefelé, opcionális mennyiség, nullára kerekedő bemenet, létrehozás/módosítás és pontos visszaolvasás ellenőrizve. A konténerek újralétrehozása után a snapshot egyezett, benne az `1.1255` bemenetből mentett `1.126` értékkel. Ez API-szintű eredmény, a módosított böngészős működés kézi visszaellenőrzését a felhasználó ezt követően lezártnak jelezte.
 - A `frontend/tests/evidence/live-snapshot.json` tartalmazza az újralétrehozás előtti üzleteket, kategóriákat, elrendezéseket, tételeket és rendezett listát, beleértve a mennyiségeket, vásárlási jelöléseket és a kiválasztott üzletet. A külön ellenőrző futás ennek egyezését vizsgálja.
 - A meglévő, opcionális `npm run test:regression` egy szándékosan hibás ideiglenes másolat és a javított API-kliens 204-válaszkezelését hasonlítja össze. Kimenete: `frontend/tests/evidence/regression-204.txt`; korábbi eredménye: hibás másolat exit 1, javított exit 0.
 
@@ -38,7 +39,9 @@ A generált jelentések és az `evidence` fájlok helyi, Gitből kizárt állom�
 
 ## Böngészős ellenőrzések
 
-Előfeltétel: külön tesztalkalmazás a [README](../README.md#running-the-application) szerint elindítva, böngészőben megnyitva. Az alábbi esetek végrehajtása még szükséges; az API-szintű eredmények nem jelentik a UI sikeres ellenőrzését. Használj egyedi tesztneveket, és rögzítsd a tényleges eredményt.
+Előfeltétel: külön tesztalkalmazás a [README](../README.md#running-the-application) szerint elindítva, böngészőben megnyitva. A felhasználó mind az öt fő forgatókönyvet manuálisan végrehajtotta, és a működést megfelelőnek találta. Beszámolója kiterjedt az üzlet- és kategóriakezelésre, tételműveletekre, hibás bemenetekre, sorrendre és figyelmeztetésekre, valamint a vásárlási folyamatra, oldalfrissítésre és Docker Compose újraindítás utáni adatmegőrzésre. Ezek felhasználói manuális eredmények; automatizált böngészős teszt nem futott.
+
+A tesztelés külön hibát tárt fel: az `1,1255` négy tizedesjeggyel is megjelent. A három tizedesjegyes `HALF_UP` korrekció implementálva és unit tesztekkel ellenőrizve; a felhasználó a módosított UI működésének kézi visszaellenőrzését ezt követően lezártnak jelezte. Az alábbi lépéssor a már végrehajtott fő forgatókönyveket őrzi meg; eredményük a beszámoló alapján megfelelő; a külön feltárt mennyiségkerekítési hiba javításának kézi visszaellenőrzése is lezárult.
 
 | Eset | Lépések | Elvárt eredmény |
 |---|---|---|
@@ -47,3 +50,7 @@ Előfeltétel: külön tesztalkalmazás a [README](../README.md#running-the-appl
 | Sorrend és hiányzó kategória (EF3, EF5–EF6) | Előbb Tej, majd Kenyér; a bolti elrendezésben Pékáru felülre. Válts üzletet, majd vissza. Távolítsd el a Tej kategóriáját, pipáld a tételt, végül rendeld vissza a kategóriát. | A bolti sorrend érvényesül; a hiányos tétel a végén, piros aláhúzással és figyelmeztetéssel jelenik meg, pipálható; visszahelyezés után a figyelmeztetés eltűnik. |
 | Vásárlási műveletek (EF7) | Két tételből egyet jelölj; Remaining, All, New shopping trip megerősítéssel. Ismét jelölj egyet, majd Delete purchased. Végül ellenőrizd a minden megvásárolva és az üres lista állapotát. | A szűrés helyes; az új bevásárlás csak jelöléseket töröl; a megvásároltak törlése csak a jelölteket távolítja el; az üzenetek érthetők. |
 | Frissítés és újraindítás (EF1, EF8) | Legyen két tétel, egyik pipálva; válassz üzletet, nyomj F5-öt. Jegyezd fel a listát és elrendezést. Ugyanazon tesztprojekten `down`, majd `up -d --wait`, kötet törlése nélkül; ismét F5. | Az üzletválasztás, tételek, mezőértékek, jelölések, kategóriák és elrendezések megmaradnak. |
+
+### A kerekítési javítás kézi visszaellenőrzése – lezárva
+
+Új tételnél és Edit nézetben is írd be a `1,5`, `1.5`, `1,1255`, `1.1255`, `1,1254`, `0,0009`, `2,9999` értékeket. A szöveges, decimális bevitelt jelző mezőnek mindkét elválasztót el kell fogadnia. Mentés után rendre `1,5`, `1,5`, `1,126`, `1,126`, `1,125`, `0,001`, `3` jelenjen meg a listában és a visszanyitott szerkesztőben. Az üres mennyiség elfogadott; a `0,0001`, nulla, negatív és nem numerikus mennyiség elutasítandó, változatlan tárolt adatokkal. F5 és újraindítás után is a mentett kerekített érték maradjon meg. **Tényleges eredmény: a felhasználó visszajelzése alapján a mennyiségkezelés kézi visszaellenőrzése lezárva, megfelelő eredménnyel. Az ellenőrzést a felhasználó manuálisan végezte, nem automatizált böngészős teszt.**
