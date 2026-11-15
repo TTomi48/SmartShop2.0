@@ -16,7 +16,7 @@ npm run dev
 
 Open the URL displayed by Vite.
 
-The frontend requires the Spring Boot backend running on `http://localhost:8080`. To use another API address, set `VITE_API_BASE_URL` in `.env.local`.
+The frontend requires the Spring Boot backend running on `http://localhost:8080`; Vite proxies `/api` to it. The default frontend URL is `http://localhost:5173`. For another backend address, change the proxy target in `vite.config.ts`. `VITE_API_BASE_URL` is only suitable for a same-origin proxy or a server explicitly configured for cross-origin access; the backend does not enable CORS by default. In PowerShell with restricted execution policy, use `npm.cmd` in place of `npm`.
 
 To run the entire application with Docker, see the [root README](../README.md).
 
@@ -37,7 +37,7 @@ The regression check writes its output to `tests/evidence/`, which is excluded f
 
 ## Manual verification
 
-The following checks have not yet been completed against a running backend:
+The five original scenarios below now have live API checks. Browser interaction, refresh and visual checks still need manual execution; exact steps and expected results are in the [testing guide](../docs/testing.md#böngészős-ellenőrzések). Verified results are summarized in the [milestone documentation](../docs/milestone-2.md).
 
 1. Create a store and categories, then assign categories to the store.
 2. Add, edit and check shopping items.
@@ -48,4 +48,6 @@ The following checks have not yet been completed against a running backend:
 ## Documentation
 
 - [Specification](../docs/specification.md)
-- [AI decisions](../docs/ai-decisions/ai-decisions.md)
+- [AI decisions index](../docs/ai-decisions/README.md)
+
+The live test uses the production TypeScript API client against nginx, Spring Boot and PostgreSQL, without mocked fetch responses. Run it only against a disposable database: it creates data and performs the global reset/delete-purchased actions. It is intentionally excluded from `npm test`. See the [testing guide](../docs/testing.md#integráció-és-adatmegőrzés) for isolated Compose startup and persistence commands.

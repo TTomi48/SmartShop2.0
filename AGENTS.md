@@ -3,7 +3,7 @@
 ## 1. Projekt és elsődleges követelmények
 A SmartShop egy üzletfüggő bevásárlólista. A kiválasztott üzlethez rendelt kategóriák sorrendje határozza meg a még meg nem vásárolt tételek megjelenítését; ez nem útvonaltervező.
 
-- **Elsődleges forrás:** `specification.md`, különösen az EF1–EF8 elfogadási feltételek. A követelményeket ne változtasd meg önállóan.
+- **Elsődleges forrás:** [docs/specification.md](docs/specification.md), különösen az EF1–EF8 elfogadási feltételek. A követelményeket ne változtasd meg önállóan.
 - **Frontend:** React + TypeScript + Vite.
 - **Backend:** Java + Spring Boot + Maven + Spring Data JPA + Bean Validation + Lombok.
 - **Adatbázis:** PostgreSQL. A tényleges Java-/Spring-verziókat a `backend/pom.xml` határozza meg.
@@ -80,7 +80,7 @@ A commitüzenet-javaslatot a tényleges diff alapján készítsd el. **Ne futtas
 
 ## 6. AI-használat dokumentálása
 
-A `README.md` hivatkozzon a `docs/ai-decisions.md` dokumentumra. Legalább három fejlesztési fázisban (pl. követelményelemzés, implementáció, tesztelés) legyen tényleges és igazolt AI-használat.
+A `README.md` hivatkozzon a [docs/ai-decisions/README.md](docs/ai-decisions/README.md) dokumentumra. Legalább három fejlesztési fázisban (pl. követelményelemzés, implementáció, tesztelés) legyen tényleges és igazolt AI-használat.
 
 Három **valós** érdemi döntési esethez jegyezd fel: (1) probléma és kapcsolódó EF, (2) AI-eszköz/modell, (3) átadott kontextus és fontos prompt, (4) AI-javaslat, (5) saját döntés és szakmai indoklás, (6) kód-/teszt-/futtatási bizonyíték és korlátai. Ne találj ki promptokat, teszteredményeket vagy korábban nem megtörtént döntéseket.
 
