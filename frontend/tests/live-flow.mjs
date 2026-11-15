@@ -3,6 +3,7 @@ import assert from 'node:assert/strict'
 import {mkdir, readFile, writeFile} from 'node:fs/promises'
 import {api, loadInitialData} from '../src/api/shop.ts'
 import {ApiError} from '../src/api/client.ts'
+import {toItemFormValues, toItemRequest} from '../src/components/itemFormValues.ts'
 
 const base = process.env.SMARTSHOP_TEST_URL
 assert.ok(base, 'Set SMARTSHOP_TEST_URL to the disposable frontend URL.')
@@ -66,12 +67,24 @@ if (process.argv.includes('--verify-persistence')) {
     assert.deepEqual(await api.storeCategories(a.id), layoutA)
     pass('EF1–EF3, EF8: creation, uniqueness, invalid IDs, boundary moves and independent ordering')
 
-    const payload = {name: 'Milk', categoryId: first.categoryId, quantity: 1.125, unit: 'custom', note: 'a'.repeat(250)}
+    const payload = {name: 'Milk', categoryId: first.categoryId, quantity: 1.1255, unit: 'custom', note: 'a'.repeat(250)}
     const milk = await api.createItem(payload)
-    assert.equal((await api.item(milk.id)).quantity, payload.quantity, 'EF4: decimal quantity must not be rounded by PostgreSQL')
-    await api.updateItem(milk.id, {...payload, quantity: 0.001})
-    assert.equal((await api.item(milk.id)).quantity, 0.001)
+    assert.equal(milk.quantity, 1.126)
+    for (const [quantity, expected] of [[1, 1], [1.5, 1.5], [1.12, 1.12], [1.125, 1.125],
+        [1.1255, 1.126], [1.1254, 1.125], [0.0009, 0.001], [0.0005, 0.001], [2.9999, 3], [1.23456789, 1.235], [null, null]]) {
+        const created = await api.createItem({...payload, quantity})
+        assert.equal(created.quantity, expected)
+        assert.equal((await api.item(created.id)).quantity, expected)
+        const updated = await api.updateItem(milk.id, {...payload, quantity})
+        assert.equal(updated.quantity, expected)
+        assert.equal((await api.item(milk.id)).quantity, expected)
+        assert.equal(toItemFormValues(await api.item(milk.id)).quantity, expected?.toString().replace('.', ',') ?? '')
+        await api.deleteItem(created.id)
+    }
+    const commaInput = toItemRequest({name: 'Milk', categoryId: String(first.categoryId), quantity: '1,1255', unit: '', note: ''})
+    assert.equal((await api.updateItem(milk.id, commaInput)).quantity, 1.126)
     await api.updateItem(milk.id, payload)
+    pass('EF4, EF8: HALF_UP create/update, exact readback, optional quantity and reopened comma-input form')
     const bread = await api.createItem({...payload, name: 'Bread', categoryId: second.categoryId, quantity: null})
     const duplicate = await api.createItem({...payload, name: 'Bread', categoryId: second.categoryId})
     assert.notEqual(bread.id, duplicate.id)
@@ -91,7 +104,10 @@ if (process.argv.includes('--verify-persistence')) {
     pass('EF4–EF7: duplicates, decimal quantity, category order, missing category and persisted purchase state')
 
     const before = await api.item(milk.id)
-    for (const quantity of [0, -1, 'abc']) await reject(() => api.updateItem(milk.id, {...payload, quantity}), 400)
+    for (const quantity of [0, -1, -0.0001, 0.0001, 0.0004999, 'abc']) {
+        await reject(() => api.createItem({...payload, quantity}), 400)
+        await reject(() => api.updateItem(milk.id, {...payload, quantity}), 400)
+    }
     await reject(() => api.updateItem(milk.id, {...payload, note: 'a'.repeat(251)}), 400)
     await reject(() => api.updateItem(milk.id, {...payload, categoryId: 99999999}), 404)
     await reject(() => api.updateItem(milk.id, {...payload, name: ' '}), 400)
