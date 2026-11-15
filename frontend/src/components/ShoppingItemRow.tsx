@@ -9,7 +9,7 @@ interface ShoppingItemRowProps {
 }
 
 export function ShoppingItemRow({item, disabled, onToggle, onEdit, onDelete}: Readonly<ShoppingItemRowProps>) {
-    const quantity = [item.quantity?.toLocaleString('en-GB', {maximumFractionDigits: 20}), item.unit].filter(Boolean).join(' ')
+    const quantity = [item.quantity?.toString().replace('.', ','), item.unit].filter(Boolean).join(' ')
 
     return <div className="item-row">
         <input

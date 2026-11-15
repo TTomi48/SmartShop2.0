@@ -37,7 +37,9 @@ test('EF4, EF6–EF7: decimal display, missing-item warning and purchased state 
         assert.doesNotMatch(placed, /item-name missing|This category is not assigned/)
         assert.match(placed, /checked=""/)
         assert.match(placed, /item-content purchased/)
-        assert.match(render({...item, quantity: 0.0001, unit: 'kg'}), /0\.0001 kg/)
+        for (const [quantity, displayed] of [[1, '1'], [1.5, '1,5'], [1.125, '1,125'], [1.126, '1,126'], [0.001, '0,001'], [3, '3']]) {
+            assert.ok(render({...item, quantity, unit: 'kg'}).includes(`<p>${displayed} kg</p>`))
+        }
     } finally {
         await rm(directory, {recursive: true, force: true})
     }

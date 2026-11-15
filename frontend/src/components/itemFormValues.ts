@@ -1,4 +1,4 @@
-import type {ItemRequest} from '../types/index.ts'
+import type {ItemRequest, ShoppingItem} from '../types/index.ts'
 
 export interface ItemFormValues {
     name: string
@@ -6,6 +6,13 @@ export interface ItemFormValues {
     quantity: string
     unit: string
     note: string
+}
+
+export function toItemFormValues(item: ShoppingItem | null): ItemFormValues {
+    return {
+        name: item?.name ?? '', categoryId: item ? String(item.categoryId) : '',
+        quantity: item?.quantity?.toString().replace('.', ',') ?? '', unit: item?.unit ?? '', note: item?.note ?? '',
+    }
 }
 
 export function toItemRequest(values: ItemFormValues): ItemRequest {
